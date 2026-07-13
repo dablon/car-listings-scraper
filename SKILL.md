@@ -1,125 +1,44 @@
 ---
 name: car-listings-scraper
-description: "Scrape vehicle listings from Facebook Marketplace or TuCarro/MercadoLibre Colombia. Use when user wants to find cars/SUVs/4x4s by price, location, brand, or specs."
-metadata:
-  openclaw:
-    emoji: "🚗"
-    requires:
-      bins:
-        - python3
-        - curl
-      pip:
-        - requests
+description: "Scrape FB Marketplace Colombia for vehicles."
 ---
 
 # Car Listings Scraper
 
-Find vehicles in Colombia from Facebook Marketplace or TuCarro.com.co.
+## CONFIRMED METHOD
 
-## THE PROBLEM
+Use l.facebook.com (Facebook Lite).
 
-**Facebook Marketplace blocks most automated access.** Direct requests return 400 errors. But there are workarounds.
+1. Find IDs via web_search:
+   site:facebook.com/marketplace/item "Jeep Wrangler" Medellin
 
-## SOLUTION 1: Facebook Marketplace (via Google + Touch)
+2. Scrape:
+curl -sL -A "Mozilla/5.0 (Linux; Android 10; SM-G960F)..."
+  -H "Accept-Language: es-CO,es,en;q=0.9"
+  "https://l.facebook.com/marketplace/item/{ID}/"
 
-### Step 1 — Find listing IDs via Google
+3. Parse: og:title, og:description, class=f3 price span
 
-Use web_search to find indexed listings:
+## Python Script
 
-```
-site:facebook.com/marketplace/item "Jeep Wrangler" Medellin
-```
+python3 scripts/scrape_facebook.py <listing_id>
+python3 scripts/scrape_facebook.py 2303743683308429
 
-Collect the listing IDs (numeric IDs like `1543118877472637`).
+## HARD RULES
+1. Never fabricate data - only report what was fetched
+2. HP is ESTIMATED from engine displacement - use hp_estimate field
+3. Transmission inferred from "Caja mecanica"/"automática"
+4. Drivetrain inferred from "4x4"/"4x2" keywords
 
-### Step 2 — Fetch via touch.facebook.com
+## Sources
+l.facebook.com - BEST (confirmed working)
+touch.facebook.com - partial
+Google site search - discovery only
 
-Facebook's mobile touch version is more permissive:
-
-```bash
-curl -A "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15..." \
-  "https://touch.facebook.com/marketplace/item/1543118877472637/"
-```
-
-Extract from response:
-- `og:title` → vehicle name
-- `og:description` → basic details
-- `og:image` → photo URL
-
-### Step 3 — Parse Google snippets
-
-Search snippets often contain:
-- Price: `COP 75,000,000`
-- Year: `2012`
-- Km: `82 mil km`
-
-### Step 4 — Known working patterns
-
-These Facebook Marketplace listings work in Medellín:
-
-| Model | Year | Price | Link |
-|-------|------|-------|------|
-| Jeep Wrangler | 2007 | $65.9M | marketplace/item/ (Rubicon 168K km) |
-| Jeep Wrangler | 2010 | $75M | marketplace/item/ |
-| Jeep Wrangler | 2014 | $98.9M | marketplace/item/ |
-| Jeep Cherokee | 2015 | $54.9M | marketplace/item/ |
-
-## SOLUTION 2: TuCarro.com.co (Guaranteed)
-
-**TuCarro.com.co (MercadoLibre) never blocks scraping.**
-
-### Step 1 — Search
-
-```
-site:articulo.tucarro.com.co "Jeep Wrangler" Medellin precio
-```
-
-### Step 2 — Extract URLs
-
-Collect `articulo.tucarro.com.co/MCO-XXXXXXXX` URLs.
-
-### Step 3 — Fetch details
-
-```bash
-curl "https://articulo.tucarro.com.co/MCO-3896512808" | grep -E '(price|year|km|HP|Motor)'
-```
-
-## Python Scripts
-
-```bash
-# Facebook Marketplace scraper
-python3 scripts/scrape_facebook.py "Jeep Wrangler" --location Medellin
-
-# TuCarro scraper  
-python3 scripts/scrape_tucarro.py "Jeep Wrangler" --location Medellin --max-price 50000000
-```
-
-## Hard Rules
-
-1. **Never invent data.** Only report what you actually fetched.
-2. **web_fetch blocked?** → Try touch.facebook.com variant
-3. **Google snippet has price/km?** → Report it
-4. **HP not in snippet?** → Estimate from engine displacement
-5. **TuCarro always works** → Prefer it when Facebook fails
-
-## Sources That Work
-
-| Source | URL Pattern | Status |
-|--------|-------------|--------|
-| TuCarro.com.co | `articulo.tucarro.com.co/MCO-*` | ✅ Always works |
-| Facebook Touch | `touch.facebook.com/marketplace/item/*` | ⚠️ Sometimes works |
-| Facebook Desktop | `facebook.com/marketplace/item/*` | ❌ Blocked |
-| Google indexed snippets | `site:facebook.com/marketplace/item` | ✅ Works via web_search |
+## HP Reference (estimated)
+3.6L V6 = 285 HP | 3.8L V6 = 202 HP | 3.2L V6 = 271 HP
+2.0L Turbo = 270-285 HP | 1.4L = 95-97 HP | 1.3L = 85 HP
 
 ## Example Output
-
-```
-🚗 JEEP WRANGLER 2012 — 3.6L SPORT
-🔗 https://www.facebook.com/marketplace/item/1543118877472637/
-💰 Price: ~$79-95M COP (from snippet)
-⚡ HP: 285 (estimated from 3.6L)
-🛣️ Km: 82,000 km (from snippet)
-📍 Location: Medellín
-
-SOURCE: Google indexed snippet from Facebook Marketplace
-```
+python3 scripts/scrape_facebook.py 2303743683308429
+Returns: Suzuki Jimny 2014, $44.9M, 143,900km, Mecanica, 4x4
