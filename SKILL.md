@@ -1,23 +1,39 @@
 ---
-name: car-listings-scraper
-description: "Scrape FB Marketplace Colombia for vehicles."
+name: facebook-marketplace-scraper
+description: "Scrape any listing from FB Marketplace via l.facebook.com. Extract title, price, description."
 ---
 
-# Car Listings Scraper
+# Facebook Marketplace Scraper
 
-## CONFIRMED METHOD
+## Method: l.facebook.com
 
-Use l.facebook.com (Facebook Lite).
+FB blocks direct access. Use Facebook Lite redirect.
 
-1. Find IDs via web_search:
-   site:facebook.com/marketplace/item "Jeep Wrangler" Medellin
+### Step 1 — Find Listing IDs
 
-2. Scrape:
-curl -sL -A "Mozilla/5.0 (Linux; Android 10; SM-G960F)..."
-  -H "Accept-Language: es-CO,es,en;q=0.9"
+Discovery via web_search:
+site:facebook.com/marketplace/item "keyword" city
+
+Examples:
+site:facebook.com/marketplace/item "iPhone" Bogota
+site:facebook.com/marketplace/item "PS5" Colombia
+
+Extract numeric ID from URL:
+facebook.com/marketplace/item/1234567890/ -> ID: 1234567890
+
+### Step 2 — Scrape the Listing
+
+curl -s -L \
+  -A "Mozilla/5.0 (Linux; Android 10; SM-G960F) AppleWebKit/537.36"
+  -H "Accept-Language: es-CO,es,en;q=0.9" \
   "https://l.facebook.com/marketplace/item/{ID}/"
 
-3. Parse: og:title, og:description, class=f3 price span
+### Step 3 — Parse
+
+og:title -> title
+og:description -> description
+class="f3" span -> price (often "X por articulo")
+Listed in ... -> location
 
 ## Python Script
 
@@ -25,20 +41,28 @@ python3 scripts/scrape_facebook.py <listing_id>
 python3 scripts/scrape_facebook.py 2303743683308429
 
 ## HARD RULES
+
 1. Never fabricate data - only report what was fetched
-2. HP is ESTIMATED from engine displacement - use hp_estimate field
-3. Transmission inferred from "Caja mecanica"/"automática"
-4. Drivetrain inferred from "4x4"/"4x2" keywords
+2. Price from class="f3" span often contains "por articulo" - strip if needed
+3. Description may be empty for some listings - handle gracefully
+4. Always include the listing link in output
+
+## Output Format
+
+json with fields: id, title, price, year, km, engine,
+transmission, drivetrain, hp_estimate, location,
+description, link, source
+
+Note: vehicle-specific fields (km, transmission, drivetrain)
+may be empty for non-vehicle items.
+
+## Alternative
+
+TuCarro fallback:
+python3 scripts/scrape_tucarro.py "terms" --location City --max-price 50000000
 
 ## Sources
+
 l.facebook.com - BEST (confirmed working)
 touch.facebook.com - partial
 Google site search - discovery only
-
-## HP Reference (estimated)
-3.6L V6 = 285 HP | 3.8L V6 = 202 HP | 3.2L V6 = 271 HP
-2.0L Turbo = 270-285 HP | 1.4L = 95-97 HP | 1.3L = 85 HP
-
-## Example Output
-python3 scripts/scrape_facebook.py 2303743683308429
-Returns: Suzuki Jimny 2014, $44.9M, 143,900km, Mecanica, 4x4
