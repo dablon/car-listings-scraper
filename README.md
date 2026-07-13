@@ -1,33 +1,76 @@
-# Car Listings Scraper
+# 🚗 Car Listings Scraper
 
-Scrape vehicle listings from Colombian marketplaces. **Facebook Marketplace blocks automated access**, so this skill uses TuCarro.com.co instead — it's MercadoLibre's classifieds platform with the same listings, no blocking.
+**Scrape vehicle listings from Colombian marketplaces.**
+
+> ⚠️ **Facebook Marketplace blocks automated access.** This tool uses TuCarro.com.co instead — the same listings, no blocking.
 
 ## Quick Start
 
+### Web Search (any agent)
+
 ```bash
-# Find Jeep Wranglers in Medellin
+# Search for Jeep Wranglers in Medellin
 web_search query="site:articulo.tucarro.com.co \"Jeep Wrangler\" Medellin precio"
 
-# Fetch a specific listing
+# Get listing details
 web_fetch url="https://articulo.tucarro.com.co/MCO-XXXXXXXX" maxChars=5000
 ```
 
-## Sources
+### Python Script (local terminal)
 
-| Source | URL Pattern | Works? |
-|--------|-------------|--------|
-| TuCarro.com.co | `articulo.tucarro.com.co/MCO-*` | ✅ Yes |
-| MercadoLibre Cars | `carros.mercadolibre.com.co` | ✅ Yes |
-| Facebook Marketplace | `facebook.com/marketplace/item/*` | ❌ Blocked |
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-## Common HP reference (Colombian market)
+# Search for vehicles
+python3 scripts/scrape_tucarro.py "Jeep Wrangler" --location Medellin --max-price 50000000
 
-| Model | Engine | HP |
-|-------|--------|-----|
-| Jeep Wrangler 3.6 | V6 3.6L | 285 HP |
-| Jeep Wrangler 3.8 | V6 3.8L | 202 HP |
-| Jeep Wrangler 2.0 Turbo | L4 2.0L Turbo | 270-285 HP |
-| BMW 335i (F30) | 3.0L N55 Biturbo | 300 HP |
-| BMW 328i (F30) | 2.0L N20 TwinPower | 245 HP |
-| Audi A6 3.0 TFSI | V6 3.0L S/C | 300 HP |
-| Ford Escape 2.0 EcoBoost | L4 2.0L Turbo | 245 HP |
+# Filter by HP
+python3 scripts/scrape_tucarro.py "BMW 335i" --hp-min 200 --max-price 60000000
+
+# Save results to JSON
+python3 scripts/scrape_tucarro.py "Audi A6" --output results.json
+```
+
+### Shell Wrapper
+
+```bash
+# Make executable
+chmod +x scripts/search.sh
+
+# Search
+./scripts/search.sh "Jeep Wrangler" Medellin 50000000
+./scripts/search.sh "BMW 335i" --hp-min 250
+```
+
+## Project Structure
+
+```
+car-listings-scraper/
+├── SKILL.md              # Agent skill instructions
+├── README.md             # This file
+├── requirements.txt       # Python dependencies
+├── scripts/
+│   ├── scrape_tucarro.py # Main Python scraper
+│   └── search.sh         # Shell wrapper
+└── references/
+    └── hp_guide.md       # HP reference for common Colombian vehicles
+```
+
+## Why TuCarro?
+
+| Source | Status |
+|--------|--------|
+| Facebook Marketplace | ❌ Blocked |
+| TuCarro.com.co | ✅ Works |
+| MercadoLibre Cars | ✅ Works |
+
+## Requirements
+
+- Python 3.6+
+- `requests` library
+- `beautifulsoup4` and `lxml` (optional, for advanced parsing)
+
+## License
+
+MIT - Nicolas Alcaraz (@dablon)
